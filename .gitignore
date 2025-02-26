@@ -7,3 +7,6 @@ version.h
 build-info.h
 core
 build
+install
+third
+tmp

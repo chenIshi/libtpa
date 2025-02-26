@@ -43,14 +43,14 @@ so: $(LIBTPA_SO)
 
 static: src lib
 	$(Q)echo "  AR libtpa.a"
-	$(Q)echo create $(LIBTPA_A)                >  /tmp/tpa.mri
-	$(Q)echo addlib $(OBJ_ROOT)/src/tpa-core.a >> /tmp/tpa.mri
-	$(Q)echo addlib $(OBJ_ROOT)/lib/tpa-lib.a  >> /tmp/tpa.mri
+	$(Q)echo create $(LIBTPA_A)                >  ./tmp/tpa.mri
+	$(Q)echo addlib $(OBJ_ROOT)/src/tpa-core.a >> ./tmp/tpa.mri
+	$(Q)echo addlib $(OBJ_ROOT)/lib/tpa-lib.a  >> ./tmp/tpa.mri
 	$(Q)for i in $(DPDK_LD_PATH)/librte_*.a; do \
-		echo addlib $$i			   >> /tmp/tpa.mri; \
+		echo addlib $$i			   >> ./tmp/tpa.mri; \
 	done
-	$(Q)echo save 				   >> /tmp/tpa.mri
-	$(Q)ar -M < /tmp/tpa.mri
+	$(Q)echo save 				   >> ./tmp/tpa.mri
+	$(Q)ar -M < ./tmp/tpa.mri
 	$(Q)bash ./buildtools/gen-pkg-config-file
 
 summary: $(SUBDIRS) static
