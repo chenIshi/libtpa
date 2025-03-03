@@ -17,6 +17,7 @@
 
 #include "conn.h"
 #include "mbuf.h"
+#include "offrac.h"
 
 #define MIN(a, b)		((a) < (b) ? (a) : (b))
 
