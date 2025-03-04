@@ -60,6 +60,9 @@ As a patch, first update the output location in Makefile:
 
 And you do need `sudo` to do `make install`.
 
+> Notice:
+> Explicitly do `export DPDK_VERSION=v22.11`, better for your live.
+
 With all setup, you can build libtpa simply by::
 
     make

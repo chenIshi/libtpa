@@ -46,7 +46,7 @@ void usage(void)
 			"                    expects a response will be returned from the server end\n"
 			"  * crr             basically does the same thing like rr, except that a\n"
 			"                    connection is created for each request\n"
-			"Offrac options (both options need to be set the same time):\n"
+			"Offrac options (both options need to be set the same time, exclusive to -i):\n"
 			"  -f offrac_function specifies the offrac function to be performed\n"
 			"  -z offrac_size     specifies the value array size within a request\n"
 			"  -a offrac_args	  specifies the optional args for several offrac functions\n", 
@@ -187,6 +187,11 @@ int parse_options(int argc, char **argv)
 
 	if (ctx.is_client && ctx.test < 0) {
 		fprintf(stderr, "error: missing mandatory option: -t test\n\n");
+		usage();
+	}
+
+	if (ctx.integrity_enabled && ctx.offrac_function) {
+		fprintf(stderr, "error: -i and -f offrac_function can not be given at the same time\n\n");
 		usage();
 	}
 

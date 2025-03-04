@@ -59,12 +59,10 @@ static void read_test_data(struct connection *conn, struct tpa_iovec *iov,
 		}
 
 		if (conn->integrity_enabled) {
-			if (conn->offrac_function > 0) {
-				offrac_process(base, len, conn->offrac_function, conn->offrac_size, conn->offrac_args);
-			} else {
-				// fall back to default integrity_verify, the default tperf behavior
-				integrity_verify(base, len, conn->integrity_off + conn->stats.bytes_read);
-			}
+			// fall back to default verification, the default tperf behavior
+			integrity_verify(base, len, conn->integrity_off + conn->stats.bytes_read);
+		} else if (conn->offrac_function > 0) {
+			offrac_process(base, len, conn->offrac_function, conn->offrac_size, conn->offrac_args);
 		}
 
 		UPDATE_STATS(conn, bytes_read, len);
