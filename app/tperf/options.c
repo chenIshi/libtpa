@@ -48,7 +48,7 @@ void usage(void)
 			"                    connection is created for each request\n"
 			"Offrac options (both options need to be set the same time):\n"
 			"  -f offrac_function specifies the offrac function to be performed\n"
-			"  -s offrac_size     specifies the value array size within a request\n",
+			"  -z offrac_size     specifies the value array size within a request\n"
 			"  -a offrac_args	  specifies the optional args for several offrac functions\n", 
 			TPERF_PORT,
 			DEFAULT_MESSAGE_SIZE,
@@ -88,7 +88,7 @@ int parse_options(int argc, char **argv)
 	ctx.start_cpu     = -4096;
 	ctx.nr_conn_per_thread = 1;
 
-	while ((opt = getopt(argc, argv, "c:C:t:d:l:m:n:p:S:W:f:s:a:isqh")) != -1) {
+	while ((opt = getopt(argc, argv, "c:C:t:d:l:m:n:p:S:W:f:z:a:isqh")) != -1) {
 		switch (opt) {
 		case 's':
 			ctx.is_client = 0;
@@ -159,7 +159,7 @@ int parse_options(int argc, char **argv)
 			PARSE_NUM(ctx.offrac_args, optarg, NUM_TYPE_NONE, "offrac func args");
 			break;
 
-		case 's':
+		case 'z':
 			PARSE_NUM(ctx.offrac_size, optarg, NUM_TYPE_NONE, "offrac size");
 			break;
 

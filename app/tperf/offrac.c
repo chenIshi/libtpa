@@ -24,21 +24,24 @@ int offrac_process(char *buf, int size, offrac_func_t offrac_func, int offrac_si
     offrac_func_ptr offrac_func_ptr = NULL;
     switch (offrac_func) {
         case TOPK:
-            func = topk;
+            offrac_func_ptr = offrac_topk;
             break;
         case MINMAX:
-            func = minmax;
+            offrac_func_ptr = offrac_minmax;
             break;
         case LOGIT:
-            func = logit;
+            offrac_func_ptr = offrac_logit;
             break;
         default:
             fprintf(stderr, "failed to recognize OffRAC function %d\n", offrac_func);
             return -1;
     }
 
-    if (func) {
-        return func(buf32, size32, offrac_size, offrac_args);
+    if (offrac_func_ptr) {
+        return offrac_func_ptr(buf32, size32, offrac_size, offrac_args);
+    } else {
+	fprintf(stderr, "Reaching unreachable region in offrac processing\n");
+	return -1;
     }
 }
 

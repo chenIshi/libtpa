@@ -43,6 +43,7 @@ struct offrac_session_s {
 */
 
 #include <math.h>
+#include <float.h>
 
 // Enum for offrac supporting functions
 typedef enum {
@@ -54,11 +55,11 @@ typedef enum {
 // Offrac request handlers
 typedef int (*offrac_func_ptr)(uint32_t *buf, int size, int offrac_size, int offrac_args);
 
-int offrac_topk(uint32_t *, int, int, int);
-int offrac_minmax(uint32_t *, int, int, int);
-int offrac_logit(uint32_t *, int, int, int);
+int offrac_topk(uint32_t *buf, int size, int offrac_size, int offrac_args);
+int offrac_minmax(uint32_t *buf, int size, int offrac_size, int offrac_args);
+int offrac_logit(uint32_t *buf, int size, int offrac_size, int offrac_args);
 
 // Handler interface for offrac functions
-int offrac_process(char *, int, offrac_func_t, int, int);
+int offrac_process(char *buf, int size, offrac_func_t offrac_func, int offrac_size, int offrac_args);
 
 #endif
