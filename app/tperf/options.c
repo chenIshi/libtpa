@@ -45,7 +45,11 @@ void usage(void)
 			"  * rr              send a request (with payload) to the server and\n"
 			"                    expects a response will be returned from the server end\n"
 			"  * crr             basically does the same thing like rr, except that a\n"
-			"                    connection is created for each request\n",
+			"                    connection is created for each request\n"
+			"Offrac options (both options need to be set the same time):\n"
+			"  -f offrac_function specifies the offrac function to be performed\n"
+			"  -s offrac_size     specifies the value array size within a request\n",
+			"  -a offrac_args	  specifies the optional args for several offrac functions\n", 
 			TPERF_PORT,
 			DEFAULT_MESSAGE_SIZE,
 			TPERF_PORT
@@ -77,11 +81,14 @@ int parse_options(int argc, char **argv)
 	ctx.duration      = DEFAULT_DURATION;
 	ctx.message_size  = DEFAULT_MESSAGE_SIZE;
 	ctx.enable_tso    = 1;
+	ctx.offrac_function = 0;
+	ctx.offrac_size = 0;
+	ctx.offrac_args = 0;
 	ctx.enable_zwrite = 1;
 	ctx.start_cpu     = -4096;
 	ctx.nr_conn_per_thread = 1;
 
-	while ((opt = getopt(argc, argv, "c:C:t:d:l:m:n:p:S:W:isqh")) != -1) {
+	while ((opt = getopt(argc, argv, "c:C:t:d:l:m:n:p:S:W:f:s:a:isqh")) != -1) {
 		switch (opt) {
 		case 's':
 			ctx.is_client = 0;
@@ -139,6 +146,22 @@ int parse_options(int argc, char **argv)
 		case 'S':
 			PARSE_NUM(ctx.start_cpu, optarg, NUM_TYPE_NONE, "start_cpu");
 			break;
+		
+		case 'f':
+			PARSE_NUM(ctx.offrac_function, optarg, NUM_TYPE_NONE, "offrac function");
+			if (ctx.offrac_function < 0 || ctx.offrac_function >= 4) {
+				fprintf(stderr, "invalid offrac function: %d: out of range\n", ctx.offrac_function);
+				exit(1);
+			}
+			break;
+
+		case 'a':
+			PARSE_NUM(ctx.offrac_args, optarg, NUM_TYPE_NONE, "offrac func args");
+			break;
+
+		case 's':
+			PARSE_NUM(ctx.offrac_size, optarg, NUM_TYPE_NONE, "offrac size");
+			break;
 
 		case 'i':
 			ctx.integrity_enabled = 1;
@@ -164,6 +187,21 @@ int parse_options(int argc, char **argv)
 
 	if (ctx.is_client && ctx.test < 0) {
 		fprintf(stderr, "error: missing mandatory option: -t test\n\n");
+		usage();
+	}
+
+	if (ctx.offrac_function && ctx.offrac_size == 0) {
+		fprintf(stderr, "error: missing mandatory option: -s offrac size\n\n");
+		usage();
+	}
+
+	if (ctx.offrac_size && ctx.offrac_function == 0) {
+		fprintf(stderr, "error: missing mandatory option: -f offrac function\n\n");
+		usage();
+	}
+
+	if (ctx.offrac_args && ctx.offrac_function == 0) {
+		fprintf(stderr, "error: -a offrac args can only be used with -f offrac function\n\n");
 		usage();
 	}
 

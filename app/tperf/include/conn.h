@@ -20,6 +20,10 @@ struct test_info {
 	uint32_t integrity_enabled:1;
 	uint32_t enable_zwrite:1;
 	uint32_t integrity_off;
+	// OffRAC specific fields
+	uint32_t offrac_function;
+	uint32_t offrac_size;
+	uint32_t offrac_args;
 } __attribute__((__aligned__(64)));
 
 struct latency {
@@ -45,6 +49,9 @@ struct connection {
 	int is_client;
 
 	int test;
+	int offrac_function; // accelator function should be performed
+	int offrac_size; // value array size within a request 
+	int offrac_args; // optional args for several offrac functions
 	int message_size;
 	int enable_zwrite;
 	int integrity_enabled;

@@ -6,6 +6,7 @@
 #ifndef _OFFRAC_H_
 #define _OFFRAC_H_
 
+/*
 struct offrac_topk_params {
     short k;
 }
@@ -39,5 +40,25 @@ struct offrac_session_s {
     struct offrac_common_h common;
     bool enabled;
 }
+*/
+
+#include <math.h>
+
+// Enum for offrac supporting functions
+typedef enum {
+    TOPK = 1,
+    MINMAX,
+    LOGIT
+} offrac_func_t;
+
+// Offrac request handlers
+typedef int (*offrac_func_ptr)(uint32_t *buf, int size, int offrac_size, int offrac_args);
+
+int offrac_topk(uint32_t *, int, int, int);
+int offrac_minmax(uint32_t *, int, int, int);
+int offrac_logit(uint32_t *, int, int, int);
+
+// Handler interface for offrac functions
+int offrac_process(char *, int, offrac_func_t, int, int);
 
 #endif

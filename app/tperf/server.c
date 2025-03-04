@@ -16,7 +16,9 @@ void init_server_conn(struct connection *conn)
 	conn->integrity_off = conn->info.integrity_off;;
 	conn->enable_zwrite = conn->info.enable_zwrite;
 	conn->message_size = message_size;
-
+	conn->offrac_function = conn->info.offrac_function;
+	conn->offrac_size = conn->info.offrac_size;
+	conn->offrac_args = conn->info.offrac_args;
 	switch (conn->test) {
 	case TEST_READ:
 		conn->read.budget  = 0;

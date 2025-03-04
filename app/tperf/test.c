@@ -58,8 +58,14 @@ static void read_test_data(struct connection *conn, struct tpa_iovec *iov,
 			len -= bytes_eaten - sum;
 		}
 
-		if (conn->integrity_enabled)
-			integrity_verify(base, len, conn->integrity_off + conn->stats.bytes_read);
+		if (conn->integrity_enabled) {
+			if (conn->offrac_function > 0) {
+				offrac_process(base, len, conn->offrac_function, conn->offrac_size, conn->offrac_args);
+			} else {
+				// fall back to default integrity_verify, the default tperf behavior
+				integrity_verify(base, len, conn->integrity_off + conn->stats.bytes_read);
+			}
+		}
 
 		UPDATE_STATS(conn, bytes_read, len);
 
@@ -152,7 +158,9 @@ static int emit_test_info(struct connection *conn)
 	info->integrity_off = conn->integrity_off;
 	info->enable_zwrite = conn->enable_zwrite;
 	info->message_size = conn->message_size;
-
+	info->offrac_function = conn->offrac_function; // client verify server response
+	info->offrac_size = conn->offrac_size;	// sanity check of server response size
+	info->offrac_args = conn->offrac_args; // passing offrac function args
 	ret = tpa_write(conn->sid, info, sizeof(*info));
 	if (ret != sizeof(*info)) {
 		if (ret == -1 && errno == EAGAIN)

@@ -69,6 +69,9 @@ struct ctx {
 	int start_cpu;
 	int integrity_enabled;
 	int enable_tso;
+	int offrac_function; // accelator function should be performed 
+	int offrac_size; // value array size within a request
+	int offrac_args; // optional args for several offrac functions
 	int enable_zwrite;
 	int port;
 	int quiet;
