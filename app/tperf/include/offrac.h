@@ -45,6 +45,8 @@ struct offrac_session_s {
 #include <math.h>
 #include <float.h>
 
+#define MAX_BUF_SIZE 20480
+
 // Enum for offrac supporting functions
 typedef enum {
     TOPK = 1,
@@ -61,5 +63,6 @@ int offrac_logit(uint32_t *buf, int size, int offrac_size, int offrac_args);
 
 // Handler interface for offrac functions
 int offrac_process(char *buf, int size, offrac_func_t offrac_func, int offrac_size, int offrac_args);
+int offrac_down(void);
 
 #endif

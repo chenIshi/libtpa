@@ -7,6 +7,15 @@
 
 #include "tperf.h"
 
+static volatile int keep_running = 1;
+
+void shutdown_server(int sig)
+{
+	keep_running = 0;
+	offrac_down();
+	exit(0);
+}
+
 void init_server_conn(struct connection *conn)
 {
 	int message_size = conn->info.message_size;
@@ -86,7 +95,7 @@ static void *server_thread_loop(void *arg)
 	if (thread->id == 0)
 		start_server();
 
-	while (1) {
+	while (keep_running) {
 		tpa_worker_run(thread->worker);
 
 		accept_socks(thread);
@@ -99,6 +108,8 @@ static void *server_thread_loop(void *arg)
 
 int tperf_server(void)
 {
+	signal(SIGINT, shutdown_server);
+
 	spawn_test_threads(server_thread_loop);
 
 	while (1)

@@ -12,6 +12,7 @@
 #include <assert.h>
 #include <unistd.h>
 #include <sys/queue.h>
+#include <signal.h>
 
 #include <tpa.h>
 

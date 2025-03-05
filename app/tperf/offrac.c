@@ -5,7 +5,11 @@
 
 #include "tperf.h"
 
-int offrac_process(char *buf, int size, offrac_func_t offrac_func, int offrac_size, int offrac_args) {    
+static int call_counter = 0;
+static char *buffer_storage = NULL;
+static int current_buffer_size = 0;
+
+int offrac_process(char *buf, int size, offrac_func_t offrac_func, int offrac_size, int offrac_args) { 
     // slice the byte array into uint32_t array
     // Check if the buffer is properly aligned
     if ((uintptr_t)buf % sizeof(uint32_t) != 0) {
@@ -18,8 +22,36 @@ int offrac_process(char *buf, int size, offrac_func_t offrac_func, int offrac_si
         fprintf(stderr, "Buffer size is not a multiple of uint32_t size\n");
         return -1;
     }
-    uint32_t *buf32 = (uint32_t *)buf;
-    int size32 = size / sizeof(uint32_t);
+
+    // Allocate storage buffer if not already allocated
+    if (buffer_storage == NULL) {
+        buffer_storage = (char *)malloc(MAX_BUF_SIZE);
+        if (buffer_storage == NULL) {
+            fprintf(stderr, "Failed to allocate buffer storage\n");
+            return -1;
+        }
+    }
+
+    // Check if there is enough space in the buffer
+    if (call_counter * size >= MAX_BUF_SIZE) {
+        fprintf(stderr, "Buffer storage is full\n");
+        return -1;
+    }
+
+    // Copy the current buffer to the storage buffer
+    memcpy(buffer_storage + (call_counter * size), buf, size);
+    current_buffer_size += size;
+    call_counter ++;
+
+    // Check if we have reached the required number of calls
+    if (call_counter < offrac_size) {
+        return 0;
+    }
+
+    // Process the buffer once the data in request all arrived
+
+    uint32_t *buf32 = (uint32_t *)buffer_storage;
+    int size32 = current_buffer_size / sizeof(uint32_t);
 
     offrac_func_ptr offrac_func_ptr = NULL;
     switch (offrac_func) {
@@ -38,10 +70,26 @@ int offrac_process(char *buf, int size, offrac_func_t offrac_func, int offrac_si
     }
 
     if (offrac_func_ptr) {
-        return offrac_func_ptr(buf32, size32, offrac_size, offrac_args);
+        if (offrac_func_ptr(buf32, size32, offrac_size, offrac_args) >= 0) {
+            // Reset the call counter and current buffer size
+            call_counter = 0;
+            current_buffer_size = 0;
+            return 0;
+        } else {
+            fprintf(stderr, "failed during running offrac function\n");
+            return -1;
+        }
     } else {
-	fprintf(stderr, "Reaching unreachable region in offrac processing\n");
-	return -1;
+        fprintf(stderr, "reaching unreachable region in offrac processing\n");
+        return -1;
+    }
+}
+
+void offrac_down() {
+    // free buffer storage
+    if (buffer_storage) {
+        free(buffer_storage);
+        buffer_storage = NULL;
     }
 }
 
