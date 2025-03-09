@@ -64,6 +64,9 @@ int offrac_process(char *buf, int size, offrac_func_t offrac_func, int offrac_si
         case LOGIT:
             offrac_func_ptr = offrac_logit;
             break;
+        case CNN:
+            offrac_func_ptr = offrac_cnn;
+            break;
         default:
             fprintf(stderr, "failed to recognize OffRAC function %d\n", offrac_func);
             return -1;
@@ -162,4 +165,30 @@ int offrac_logit(uint32_t *buf, int size, int offrac_size, int offrac_args) {
     }
 
     return size;
+}
+
+// return the buf size after CNN, ideally should be a one-hot encoding
+// return -1 if error
+int offrac_cnn(uint32_t *buf, int size, int offrac_size, int offrac_args) {
+    OrtEnv* env;
+    OrtStatus* status = OrtCreateEnv(ORT_LOGGING_LEVEL_WARNING, "ONNXRuntimeModel", &env);
+
+    if (status != NULL) {
+        fprintf(stderr, "Error creating ONNX environment: %s\n", OrtGetErrorMessage(status));
+        return -1;
+    }
+
+    // Session options and model loading
+    OrtSessionOptions* session_options;
+    OrtCreateSessionOptions(&session_options);
+
+    OrtSession* session;
+    status = OrtCreateSession(env, "./model/small_CNN.onnx", session_options, &session);
+    if (status != NULL) {
+        fprintf(stderr, "Error loading model: %s\n", OrtGetErrorMessage(status));
+        return -1;
+    }
+
+    // Prepare input data (3D u_int8 array, size 3x64x64)
+    u_int8_t input
 }

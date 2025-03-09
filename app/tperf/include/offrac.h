@@ -44,6 +44,7 @@ struct offrac_session_s {
 
 #include <math.h>
 #include <float.h>
+#include "onnx/include/onnxruntime_c_api.h"
 
 #define MAX_BUF_SIZE 20480
 
@@ -51,7 +52,8 @@ struct offrac_session_s {
 typedef enum {
     TOPK = 1,
     MINMAX,
-    LOGIT
+    LOGIT,
+    CNN
 } offrac_func_t;
 
 // Offrac request handlers
@@ -60,6 +62,7 @@ typedef int (*offrac_func_ptr)(uint32_t *buf, int size, int offrac_size, int off
 int offrac_topk(uint32_t *buf, int size, int offrac_size, int offrac_args);
 int offrac_minmax(uint32_t *buf, int size, int offrac_size, int offrac_args);
 int offrac_logit(uint32_t *buf, int size, int offrac_size, int offrac_args);
+int offrac_cnn(uint32_t *buf, int size, int offrac_size, int offrac_args);
 
 // Handler interface for offrac functions
 int offrac_process(char *buf, int size, offrac_func_t offrac_func, int offrac_size, int offrac_args);
