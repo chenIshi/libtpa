@@ -65,10 +65,15 @@ int offrac_cnn(uint32_t *buf, int size, int offrac_size, int offrac_args) {
         void* buff = TF_TensorData(output_tensor);
         float* offsets = (float*)buff;
 
-        printf("Image %d result:\n", i);
+    /*
+	printf("Image %d result:\n", i);
         for (int j = 0; j < 10; j++) {
             printf("%f\n", offsets[j]);
         }
+	*/
+	// Store the result back in buf (in-place update)
+	// TODO: update to output
+        memcpy(buf + i * 10, offsets, 10 * sizeof(float));
 
         // Clean up for this image
         TF_DeleteTensor(input_tensor);
@@ -82,7 +87,7 @@ int offrac_cnn(uint32_t *buf, int size, int offrac_size, int offrac_args) {
     TF_DeleteStatus(status);
     free(input_data);
 
-    return 0;
+    return num_images * 10 * sizeof(float);
 }
 
 int main() {
@@ -105,11 +110,13 @@ int main() {
     int result = offrac_cnn(buf, size, 0, 0);
 
     // Check if the function ran successfully
+    /*
     if (result != 0) {
         printf("Function failed with error code: %d\n", result);
     } else {
         printf("Function executed successfully.\n");
     }
+    */
 
     // Clean up
     free(buf);
