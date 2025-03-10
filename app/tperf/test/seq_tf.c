@@ -4,7 +4,6 @@
 #include <float.h>
 #include <inttypes.h>
 
-// #include "../libtensorflow/include/tensorflow/c/c_api.h"
 #include "tensorflow/c/c_api.h"
 
 #define IMAGE_SIZE (64 * 64 * 3)
@@ -31,71 +30,65 @@ int offrac_cnn(uint32_t *buf, int size, int offrac_size, int offrac_args) {
     TF_Session* session = TF_LoadSessionFromSavedModel(session_opts, run_options, "saved_model", &tags, 1, graph, NULL, status);
     check_status(status);
 
-    // Prepare input tensor (64x64 RGB image)
-    if (size % (IMAGE_SIZE * sizeof(float)) != 0) {
-        fprintf(stderr, "Invalid buffer size for CNN\n");
+    // Prepare input tensor dimensions for a single image (not batch)
+    int64_t input_dims[] = {1, 64, 64, 3};  // (1 image, 64x64, RGB)
+
+    // Get input and output tensor names
+    TF_Output input_op = {TF_GraphOperationByName(graph, "serving_default_input_1"), 0};
+    TF_Output output_op = {TF_GraphOperationByName(graph, "StatefulPartitionedCall"), 0};
+
+    if (input_op.oper == NULL || output_op.oper == NULL) {
+        fprintf(stderr, "Failed to get input/output tensor\n");
         return -1;
     }
 
     int num_images = size / (IMAGE_SIZE * sizeof(float));
-    float* input_data = (float *)malloc(size);
+    float* input_data = (float *)malloc(IMAGE_SIZE * sizeof(float));
     if (input_data == NULL) {
         fprintf(stderr, "Failed to allocate input data\n");
         return -1;
     }
-    // Copy data from buf to input_data
-    memcpy(input_data, buf, size);
-    int64_t input_dims[] = {num_images, 64, 64, 3};  // Shape of the input image: (num_images, 64, 64, 3)
 
-    // Create the input tensor
-    TF_Tensor* input_tensor = TF_NewTensor(TF_FLOAT, input_dims, 4, input_data, size, &NoOpDeallocator, NULL);
-    // Prepare output tensor
-    //****** Get input tensor
-    int NumInputs = 1;
-    TF_Output* Input = (TF_Output*)malloc(sizeof(TF_Output) * NumInputs);
+    for (int i = 0; i < num_images; i++) {
+        // Copy one image from the buffer
+        memcpy(input_data, buf + i * IMAGE_SIZE, IMAGE_SIZE * sizeof(float));
 
-    TF_Output t0 = {TF_GraphOperationByName(graph, "serving_default_input_1"), 0};
+        // Create an input tensor for this single image
+        TF_Tensor* input_tensor = TF_NewTensor(TF_FLOAT, input_dims, 4, input_data, IMAGE_SIZE * sizeof(float), &NoOpDeallocator, NULL);
 
-    //********* Get Output tensor
-    int NumOutputs = 1;
-    TF_Output* Output = (TF_Output*)malloc(sizeof(TF_Output) * NumOutputs);
+        // Run inference
+        TF_Tensor* output_tensor = NULL;
+        TF_SessionRun(session, NULL, &input_op, &input_tensor, 1, &output_op, &output_tensor, 1, NULL, 0, NULL, status);
+        check_status(status);
 
-    TF_Output t2 = {TF_GraphOperationByName(graph, "StatefulPartitionedCall"), 0};
+        // Retrieve and print the result for this image
+        void* buff = TF_TensorData(output_tensor);
+        float* offsets = (float*)buff;
 
-    if (t0.oper == NULL || t2.oper == NULL) {
-        fprintf(stderr, "Failed to get input/output tensor\n");
-        return -1;
+        printf("Image %d result:\n", i);
+        for (int j = 0; j < 10; j++) {
+            printf("%f\n", offsets[j]);
+        }
+
+        // Clean up for this image
+        TF_DeleteTensor(input_tensor);
+        TF_DeleteTensor(output_tensor);
     }
-    Input[0] = t0;
-    Output[0] = t2;
 
-    TF_Tensor** InputValues = (TF_Tensor**)malloc(sizeof(TF_Tensor*) * NumInputs);
-    TF_Tensor** OutputValues = (TF_Tensor**)malloc(sizeof(TF_Tensor*) * NumOutputs);
-    InputValues[0] = input_tensor;
-    TF_SessionRun(session, NULL, Input, InputValues, NumInputs, Output, OutputValues, NumOutputs, NULL, 0, NULL, status);
-    check_status(status);
-    // Clean up
-    TF_DeleteTensor(input_tensor);
+    // Clean up global resources
     TF_DeleteSession(session, status);
     TF_DeleteSessionOptions(session_opts);
     TF_DeleteGraph(graph);
     TF_DeleteStatus(status);
     free(input_data);
 
-    // ********* Retrieve and print the result
-    void* buff = TF_TensorData(OutputValues[0]);
-    float* offsets = (float*)buff;
-    
-    for (int i = 0; i < 10; i++) {
-        printf("%f\n",offsets[i]);
-    }
     return 0;
 }
 
 int main() {
     // Buffer size: one image (64x64x3) in float
     int size = NUM_IMAGES * IMAGE_SIZE * sizeof(float);
-    
+
     // Allocate the buffer for the test data (uint32_t to match the function prototype)
     uint32_t *buf = (uint32_t*)malloc(size);
     if (buf == NULL) {
@@ -110,7 +103,7 @@ int main() {
 
     // Call the offrac_cnn function with the test data
     int result = offrac_cnn(buf, size, 0, 0);
-    
+
     // Check if the function ran successfully
     if (result != 0) {
         printf("Function failed with error code: %d\n", result);
