@@ -44,9 +44,12 @@ struct offrac_session_s {
 
 #include <math.h>
 #include <float.h>
-#include "onnx/include/onnxruntime_c_api.h"
+// #include "libtensorflow/include/tensorflow/c/c_api.h"
+#include "tensorflow/c/c_api.h"
 
 #define MAX_BUF_SIZE 20480
+// Size of a single image: 64x64x3 floats
+#define IMAGE_SIZE (64 * 64 * 3)
 
 // Enum for offrac supporting functions
 typedef enum {

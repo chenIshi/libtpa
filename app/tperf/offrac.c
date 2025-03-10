@@ -167,28 +167,76 @@ int offrac_logit(uint32_t *buf, int size, int offrac_size, int offrac_args) {
     return size;
 }
 
-// return the buf size after CNN, ideally should be a one-hot encoding
+// return the buf size after cnn, ideally should be the 10 floating point value (one-hot encoding)
 // return -1 if error
 int offrac_cnn(uint32_t *buf, int size, int offrac_size, int offrac_args) {
-    OrtEnv* env;
-    OrtStatus* status = OrtCreateEnv(ORT_LOGGING_LEVEL_WARNING, "ONNXRuntimeModel", &env);
+    // Load the TensorFlow model (SavedModel format)
+    TF_Graph* graph = TF_NewGraph();
+    TF_Status* status = TF_NewStatus();
 
-    if (status != NULL) {
-        fprintf(stderr, "Error creating ONNX environment: %s\n", OrtGetErrorMessage(status));
+    // Define session options and load the SavedModel
+    TF_SessionOptions* session_opts = TF_NewSessionOptions();
+    TF_Buffer* run_options = NULL;
+    const char* tags = "serve";
+    TF_Session* session = TF_LoadSessionFromSavedModel(session_opts, run_options, "saved_model", &tags, 1, graph, NULL, status);
+    check_status(status);
+
+    // Prepare input tensor dimensions for a single image (not batch)
+    int64_t input_dims[] = {1, 64, 64, 3};  // (1 image, 64x64, RGB)
+
+    // Get input and output tensor names
+    TF_Output input_op = {TF_GraphOperationByName(graph, "serving_default_input_1"), 0};
+    TF_Output output_op = {TF_GraphOperationByName(graph, "StatefulPartitionedCall"), 0};
+
+    if (input_op.oper == NULL || output_op.oper == NULL) {
+        fprintf(stderr, "Failed to get input/output tensor\n");
         return -1;
     }
 
-    // Session options and model loading
-    OrtSessionOptions* session_options;
-    OrtCreateSessionOptions(&session_options);
-
-    OrtSession* session;
-    status = OrtCreateSession(env, "./model/small_CNN.onnx", session_options, &session);
-    if (status != NULL) {
-        fprintf(stderr, "Error loading model: %s\n", OrtGetErrorMessage(status));
+    int num_images = size / (IMAGE_SIZE * sizeof(float));
+    float* input_data = (float *)malloc(IMAGE_SIZE * sizeof(float));
+    if (input_data == NULL) {
+        fprintf(stderr, "Failed to allocate input data\n");
         return -1;
     }
 
-    // Prepare input data (3D u_int8 array, size 3x64x64)
-    u_int8_t input
+    for (int i = 0; i < num_images; i++) {
+        // Copy one image from the buffer
+        memcpy(input_data, buf + i * IMAGE_SIZE, IMAGE_SIZE * sizeof(float));
+
+        // Create an input tensor for this single image
+        TF_Tensor* input_tensor = TF_NewTensor(TF_FLOAT, input_dims, 4, input_data, IMAGE_SIZE * sizeof(float), &NoOpDeallocator, NULL);
+
+        // Run inference
+        TF_Tensor* output_tensor = NULL;
+        TF_SessionRun(session, NULL, &input_op, &input_tensor, 1, &output_op, &output_tensor, 1, NULL, 0, NULL, status);
+        check_status(status);
+
+        // Retrieve and print the result for this image
+        void* buff = TF_TensorData(output_tensor);
+        float* offsets = (float*)buff;
+
+        /*
+        printf("Image %d result:\n", i);
+            for (int j = 0; j < 10; j++) {
+                printf("%f\n", offsets[j]);
+            }
+        */
+        // Store the result back in buf (in-place update)
+        // TODO: update to output
+        memcpy(buf + i * 10, offsets, 10 * sizeof(float));
+
+        // Clean up for this image
+        TF_DeleteTensor(input_tensor);
+        TF_DeleteTensor(output_tensor);
+    }
+
+    // Clean up global resources
+    TF_DeleteSession(session, status);
+    TF_DeleteSessionOptions(session_opts);
+    TF_DeleteGraph(graph);
+    TF_DeleteStatus(status);
+    free(input_data);
+
+    return num_images * 10 * sizeof(float);
 }
